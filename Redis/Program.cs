@@ -36,7 +36,7 @@ namespace Redis
             var item = new Data
             {
                 Id = Guid.NewGuid(),
-                Name = "cezar",
+                Name = "cez\"ar",
                 Dob = DateTime.Today,
                 Name1 = "cezar",
                 Dob1 = DateTime.Today,
