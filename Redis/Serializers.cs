@@ -91,7 +91,6 @@ namespace Redis
         {
             using (var dataStream = new MemoryStream(data))
             {
-                //return serializer.UnpackSingleObject(data);
                 return serializer.Unpack(dataStream);
             }
         }

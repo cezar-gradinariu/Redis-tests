@@ -93,20 +93,20 @@ namespace Redis
                 ratio,
                 "Bois");
 
-            //var msgSerializer = SerializationContext.Default.GetSerializer<T>();
-            //TestSingleObject(
-            //    p => Serializers.MsgPackSerialize(msgSerializer, p),
-            //    p => Serializers.MsgPackDeserialize<T>(msgSerializer, p),
-            //    item,
-            //    ratio,
-            //    "MessagePack");
+            var msgSerializer = SerializationContext.Default.GetSerializer<T>();
+            TestSingleObject(
+                p => Serializers.MsgPackSerialize(msgSerializer, p),
+                p => Serializers.MsgPackDeserialize<T>(msgSerializer, p),
+                item,
+                ratio,
+                "MessagePack");
 
-            //TestSingleObject(
-            //    p => Serializers.NetJsonSerialize(p),
-            //    p => Serializers.NetJsonDeserialize<T>(p),
-            //    item,
-            //    ratio,
-            //    "NetJson");
+            TestSingleObject(
+                p => Serializers.NetJsonSerialize(p),
+                p => Serializers.NetJsonDeserialize<T>(p),
+                item,
+                ratio,
+                "NetJson");
         }
 
         public static void TestSingleObject<T>(
