@@ -33,14 +33,14 @@ So, from my tests it results a clear winner across all my scenarios and is Bois 
 
 Q & A:
 
-1. -Q: Why not Protobuf?
-   -A: While I never used it before, and while it looks to be very fast, it is also, at least for me very awkward to use due to all the attributes I have to pollute my types with.
+-Q: Why not Protobuf?
+-A: While I never used it before, and while it looks to be very fast, it is also, at least for me very awkward to use due to all the attributes I have to pollute my types with.
 
-2. -Q: What did you not like about NETSerializer?
-   -A: For this scenario is slow and I have to put [Serializable] attributes on the types.. not an option, and easy choice as is slower than BOIS/JIL. Plus I have to register the types I want to serialize.. not cool.
+*Q: What did you not like about NETSerializer?
+*A: For this scenario is slow and I have to put [Serializable] attributes on the types.. not an option, and easy choice as is slower than BOIS/JIL. Plus I have to register the types I want to serialize.. not cool.
 
-3. -Q: What did you not like about MsgPack ?
-   -A: Slow, byte[]
+* Q: What did you not like about MsgPack ?
+* A: Slow, byte[]
 
 4. -Q: What did you not like about NetJson?
    -A: I had so many hopes with this one... It is supposed to be extremely fast. Not in my tests, not by far. It is the slowest of them all. Nothing else to say.
