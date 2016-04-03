@@ -32,27 +32,27 @@ So, from my tests it results a clear winner across all my scenarios and is Bois 
 2. It will generate byte[], which is not readable when I look into the key in Redis directly. So trying to debug something in prod is not easy. 
 
 Q & A:
-
--Q: Why not Protobuf?
--A: While I never used it before, and while it looks to be very fast, it is also, at least for me very awkward to use due to all the attributes I have to pollute my types with.
-
-*Q: What did you not like about NETSerializer?
-*A: For this scenario is slow and I have to put [Serializable] attributes on the types.. not an option, and easy choice as is slower than BOIS/JIL. Plus I have to register the types I want to serialize.. not cool.
-
+1. 
+* Q: Why not Protobuf?
+* A: While I never used it before, and while it looks to be very fast, it is also, at least for me very awkward to use due to all the attributes I have to pollute my types with.
+2. 
+* Q: What did you not like about NETSerializer?
+* A: For this scenario is slow and I have to put [Serializable] attributes on the types.. not an option, and easy choice as is slower than BOIS/JIL. Plus I have to register the types I want to serialize.. not cool.
+3. 
 * Q: What did you not like about MsgPack ?
 * A: Slow, byte[]
-
-4. -Q: What did you not like about NetJson?
-   -A: I had so many hopes with this one... It is supposed to be extremely fast. Not in my tests, not by far. It is the slowest of them all. Nothing else to say.
-
-5. -Q: What did you not like about NewtonSoft?
-   -A: Well, speed is good but it is still slower than BOIS/ JIL. Otherwise, absolutely amazing and I use it heavily in my other projects. Will skip on this one though.
-
-6. -Q: What did you not like about JIL? (https://github.com/kevin-montrose/Jil)
-   -A: I like it. Is really good for this scenario, I like that it will get me json on serialization and is fast on output.
-
-7. -Q: What did you not like about BOIS? (https://github.com/salarcode/Bois)
-   -A: Is really fast. But is not json and that makes things hard to debug in production environments. I still think I might use it despite this disadvantage.
+4. 
+* Q: What did you not like about NetJson?
+* A: I had so many hopes with this one... It is supposed to be extremely fast. Not in my tests, not by far. It is the slowest of them all. Nothing else to say.
+5. 
+* Q: What did you not like about NewtonSoft?
+* A: Well, speed is good but it is still slower than BOIS/ JIL. Otherwise, absolutely amazing and I use it heavily in my other projects. Will skip on this one though.
+6. 
+* Q: What did you not like about JIL? (https://github.com/kevin-montrose/Jil)
+* A: I like it. Is really good for this scenario, I like that it will get me json on serialization and is fast on output.
+7. 
+* Q: What did you not like about BOIS? (https://github.com/salarcode/Bois)
+* A: Is really fast. But is not json and that makes things hard to debug in production environments. I still think I might use it despite this disadvantage.
 
 
 For me the nicest surprise was BOIS, which is fast and small in size in this scenario. I suppose because is small in size it is a better candidate than JIL in a distributed environment such as REDIS, as it implies storage and network traffic reduction. I mean is already faster than JIL but also the size might give it another bonus in a real-life scenario.
