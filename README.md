@@ -7,25 +7,16 @@ Well, there are different libraries that will serialize your objects into a stri
 The ones I try here are:
 
 1. Newtonsoft.Json => to json and back
-
 2. JIL => to json and back (https://github.com/kevin-montrose/Jil)
-
 3. NetJson => to json and back
-
 4. NETSerializer => to byte[] and back
-
 5. Bois => byte[] and back
-
 6. MsgPack => byte[] and back
-
 
 How to use:
 1. Compile solution
-
 2. Run the exe after and drink a coffee as will take a while (45 min? - depends on you gear, but anyway a lot).
-
 3. A report will be generated in the bin folder in a file called "report.txt".
-
 
 For test I use a list of objects that I serialize, insert in cache, extract from cache and then de-serialize and I try different lengths for that list to emulate my real life scenario. By the way in my real-life project we have flat objects that we store, that have around 15 properties on them and they are stored as list. So, naturally, as this is about me, this test will use lists of different lengths to identify the best serializer library for this particular case.
 
