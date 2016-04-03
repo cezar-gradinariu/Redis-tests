@@ -13,10 +13,10 @@ The ones I try here are:
 5. Bois => byte[] and back
 6. MsgPack => byte[] and back
 
-How to use:
-1. Compile solution
-2. Run the exe after and drink a coffee as will take a while (45 min? - depends on you gear, but anyway a lot).
-3. A report will be generated in the bin folder in a file called "report.txt".
+How to use: 
+1. Compile solution 
+2. Run the exe after and drink a coffee as will take a while (45 min? - depends on you gear, but anyway a lot). 
+3. A report will be generated in the bin folder in a file called "report.txt". 
 
 For test I use a list of objects that I serialize, insert in cache, extract from cache and then de-serialize and I try different lengths for that list to emulate my real life scenario. By the way in my real-life project we have flat objects that we store, that have around 15 properties on them and they are stored as list. So, naturally, as this is about me, this test will use lists of different lengths to identify the best serializer library for this particular case.
 
@@ -26,8 +26,8 @@ I usually expect this to be around 100 or more.
 
 
 So, from my tests it results a clear winner across all my scenarios and is Bois library. The downsides with that
-1. It is not fantastically better then the 2nd place - JIL -
-2. It will generate byte[], which is not readable when I look into the key in Redis directly. So trying to debug something in prod is not easy.
+1. It is not fantastically better then the 2nd place - JIL - 
+2. It will generate byte[], which is not readable when I look into the key in Redis directly. So trying to debug something in prod is not easy. 
 
 Q & A:
 1. Q: Why not Protobuf?
