@@ -5,9 +5,7 @@ using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Text;
 
 namespace Redis
 {
@@ -16,19 +14,19 @@ namespace Redis
         static IDatabase cache;
         static void Main(string[] args)
         {
-            report = new StringBuilder();
-            
             cache = RedisConnectorHelper.Connection.GetDatabase();
-            Test(1, GenerateList(1));
+            Test(1, GenerateList(1).ToArray());
 
-            var ratios = new[] { 1, 10, 50, 100, 500, 1000, 5000, 10000 };
-            var noOfItems = new[] { 1, 10, 25, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500};
+            var ratios = new[] { 1, 10, 50, 100 };//, 500, 1000, 5000, 10000 };
+            var noOfItems = new[] { 1, 10, 25, 50, 100 };//, 150, 200, 250, 300, 350, 400, 450, 500};
 
+            var result = new List<TestDataResult>();
             foreach (var ratio in ratios)
                 foreach (var listCount in noOfItems)
-                    Test(ratio, GenerateList(listCount));
+                    result.AddRange(Test(ratio, GenerateList(listCount).ToArray()));
 
-            File.WriteAllText("report.txt", report.ToString());
+            GenerateRDataAndScripts(result);
+
         }
 
         private static List<Data> GenerateList(int count)
@@ -58,88 +56,98 @@ namespace Redis
             return list;
         }
 
-        private static void Test<T>(int ratio, T item) where T : class
+        private static IEnumerable<TestDataResult> Test<T>(int ratio, T[] items) where T : class
         {
-            var count = (item as List<Data>).Count();
-            Console.WriteLine($"==========Ratio: {ratio} Count: {count} =================");
-            report.AppendFormat($"==========Ratio: {ratio} Count: {count} =================").AppendLine();
-            TestSingleObject(
+            Console.WriteLine($"==========Ratio: {ratio} Count: {items.Length} =================");
+            yield return TestSingleObject(
                 p => Serializers.NewtonSoftJsonSerialize(p),
-                p => Serializers.NewtonSoftJsonDeserialize<T>(p),
-                item,
+                p => Serializers.NewtonSoftJsonDeserialize<T[]>(p),
+                items,
                 ratio,
                 "NewtonSoftJson");
 
-            TestSingleObject(
+            yield return TestSingleObject(
                 p => Serializers.JilSerialize(p),
-                p => Serializers.JilDeserialize<T>(p),
-                item,
+                p => Serializers.JilDeserialize<T[]>(p),
+                items,
                 ratio,
                 "JIL");
 
-            var netSerializer = new Serializer(new[] { typeof(T) });
-            TestSingleObject(
+            var netSerializer = new Serializer(new[] { typeof(T[]) });
+            yield return TestSingleObject(
                 p => Serializers.NetSerialize(netSerializer, p),
-                p => Serializers.NetDeserialize<T>(netSerializer, p),
-                item,
+                p => Serializers.NetDeserialize<T[]>(netSerializer, p),
+                items,
                 ratio,
                 "NET");
 
             var boisSerializer = new BoisSerializer();
-            TestSingleObject(
+            yield return TestSingleObject(
                 p => Serializers.BoisSerialize(boisSerializer, p),
-                p => Serializers.BoisDeserialize<T>(boisSerializer, p),
-                item,
+                p => Serializers.BoisDeserialize<T[]>(boisSerializer, p),
+                items,
                 ratio,
                 "Bois");
 
-            var msgSerializer = SerializationContext.Default.GetSerializer<T>();
-            TestSingleObject(
+            var msgSerializer = SerializationContext.Default.GetSerializer<T[]>();
+            yield return TestSingleObject(
                 p => Serializers.MsgPackSerialize(msgSerializer, p),
-                p => Serializers.MsgPackDeserialize<T>(msgSerializer, p),
-                item,
+                p => Serializers.MsgPackDeserialize(msgSerializer, p),
+                items,
                 ratio,
                 "MessagePack");
 
-            TestSingleObject(
+            yield return TestSingleObject(
                 p => Serializers.NetJsonSerialize(p),
-                p => Serializers.NetJsonDeserialize<T>(p),
-                item,
+                p => Serializers.NetJsonDeserialize<T[]>(p),
+                items,
                 ratio,
                 "NetJson");
         }
 
-        public static void TestSingleObject<T>(
-            Func<T, RedisValue> serialize,
-            Func<RedisValue, T> deserialize,
-            T item,
+        public static TestDataResult TestSingleObject<T>(
+            Func<T[], RedisValue> serialize,
+            Func<RedisValue, T[]> deserialize,
+            T[] items,
             int readWriteRatio,
-            string testName)
+            string serializerType)
         {
             var s = Stopwatch.StartNew();
-            cache.StringSet(testName, serialize(item), expiry: TimeSpan.FromSeconds(30000));
+            cache.StringSet(serializerType, serialize(items), expiry: TimeSpan.FromSeconds(30000));
             for (var j = 0; j < readWriteRatio; j++)
             {
-                if (cache.KeyExists(testName))
+                if (cache.KeyExists(serializerType))
                 {
-                    var data = cache.StringGet(testName);
+                    var data = cache.StringGet(serializerType);
                     var x = deserialize(data);
                 }
-
             }
-            report.AppendFormat($"{testName}: {s.ElapsedMilliseconds}ms").AppendLine();
-            Console.WriteLine($"{testName}: {s.ElapsedMilliseconds}ms");
+            var totalMs = s.ElapsedMilliseconds;
+            Console.WriteLine($"{serializerType}: {totalMs}ms");
+            return new TestDataResult
+            {
+                Milliseconds = totalMs,
+                ReadPerWriteRatio = readWriteRatio,
+                SerializerType = serializerType,
+                ItemsInList = items.Length
+            };
         }
 
-        public static StringBuilder report; 
-    }
+        private static void GenerateRDataAndScripts(List<TestDataResult> result)
+        {
+            result
+                .GroupBy(p => p.ReadPerWriteRatio)
+                .Select(p => string.Join("\t", p.OrderBy(q => q.SerializerType).Select(q=> q.Milliseconds))
 
+        }
+
+    }
 
     public class RedisConnectorHelper
     {
         static RedisConnectorHelper()
         {
-            RedisConnectorHelper.lazyConnection = new Lazy<ConnectionMultiplexer>(() =>
+            lazyConnection = new Lazy<ConnectionMultiplexer>(() =>
             {
                 return ConnectionMultiplexer.Connect("localhost");
             });
@@ -184,5 +192,13 @@ namespace Redis
 
         public DateTime? Dob7 { get; set; }
         public Guid? Id { get; set; }
+    }
+    
+    public class TestDataResult
+    {
+        public string SerializerType { get; set; }
+        public long Milliseconds { get; set; }
+        public int ReadPerWriteRatio { get; set; } = 1;
+        public int ItemsInList { get; set; }
     }
 }
