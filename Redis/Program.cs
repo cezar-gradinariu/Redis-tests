@@ -5,7 +5,10 @@ using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Threading;
 
 namespace Redis
 {
@@ -15,10 +18,11 @@ namespace Redis
         static void Main(string[] args)
         {
             cache = RedisConnectorHelper.Connection.GetDatabase();
-            Test(1, GenerateList(1).ToArray());
+            Test(1, GenerateList(1).ToArray()).ToList();
+            Thread.Sleep(1000);
 
-            var ratios = new[] { 1, 10, 50, 100 };//, 500, 1000, 5000, 10000 };
-            var noOfItems = new[] { 1, 10, 25, 50, 100 };//, 150, 200, 250, 300, 350, 400, 450, 500};
+            var ratios = new[] { 1, 10, 50, 100 , 500, 1000, 5000, 10000 };
+            var noOfItems = new[] { 1, 10, 25, 50, 100 , 150, 200, 250, 300, 350, 400, 450, 500};
 
             var result = new List<TestDataResult>();
             foreach (var ratio in ratios)
@@ -135,9 +139,27 @@ namespace Redis
 
         private static void GenerateRDataAndScripts(List<TestDataResult> result)
         {
-            result
-                .GroupBy(p => p.ReadPerWriteRatio)
-                .Select(p => string.Join("\t", p.OrderBy(q => q.SerializerType).Select(q=> q.Milliseconds))
+            var x = result
+                .GroupBy(p => new { p.ReadPerWriteRatio, p.ItemsInList })
+                .Select(p => new
+                {
+                    p.Key.ReadPerWriteRatio,
+                    p.Key.ItemsInList,
+                    Header = string.Join("\t", p.OrderBy(q => q.SerializerType).Select(q => q.SerializerType)),
+                    Values = string.Join("\t", p.OrderBy(q => q.SerializerType).Select(q => q.Milliseconds))
+                })
+                .OrderBy(p => p.ReadPerWriteRatio)
+                .ThenBy(p => p.ItemsInList)
+                .ToList();
+            var path = @"D:\Projects\Redis\Redis\R\Data";
+            x.GroupBy(p => p.ReadPerWriteRatio)
+             .ToList()
+             .ForEach(p =>
+             {
+                 var header = p.First().Header;
+                 var text = header + "\r\n" + string.Join("\r\n", p.OrderBy(q => q.ItemsInList).Select(q => q.Values));
+                 File.WriteAllText(Path.Combine(path, p.Key+".dat"), text);
+             });
 
         }
 
