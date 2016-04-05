@@ -1,36 +1,33 @@
-﻿using MsgPack.Serialization;
-using NetSerializer;
-using Salar.Bois;
-using StackExchange.Redis;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
+using StackExchange.Redis;
 
 namespace Redis
 {
-    class Program
+    internal class Program
     {
-        static IDatabase cache;
-        static void Main(string[] args)
+        private static IDatabase _cache;
+
+        private static void Main()
         {
-            cache = RedisConnectorHelper.Connection.GetDatabase();
-            Test(1, GenerateList(1).ToArray()).ToList();
+            _cache = RedisConnectorHelper.Connection.GetDatabase();
+            var tester = new Tester(_cache);
+            var x = tester.Test(1, GenerateList(1).ToArray()).ToList();
+
             Thread.Sleep(1000);
 
-            var ratios = new[] { 1, 10, 50, 100 , 500, 1000, 5000, 10000 };
-            var noOfItems = new[] { 1, 10, 25, 50, 100 , 150, 200, 250, 300, 350, 400, 450, 500};
+            var ratios = new[] {1, 10, 50, 100, 500, 1000};//, 5000, 10000};
+            var noOfItems = new[] {1, 10, 25, 50, 100, 150, 200, 250};//, 300, 350, 400, 450, 500};
 
             var result = new List<TestDataResult>();
             foreach (var ratio in ratios)
                 foreach (var listCount in noOfItems)
-                    result.AddRange(Test(ratio, GenerateList(listCount).ToArray()));
+                    result.AddRange(tester.Test(ratio, GenerateList(listCount).ToArray()));
 
             GenerateRDataAndScripts(result);
-
         }
 
         private static List<Data> GenerateList(int count)
@@ -53,94 +50,24 @@ namespace Redis
                 Name6 = "cezar",
                 Dob6 = DateTime.Today,
                 Name7 = "cezar",
-                Dob7 = DateTime.Today
+                Dob7 = DateTime.Today,
+                AsSmpleObject = new SomeInternalType(),
+                AsIList = Enumerable.Repeat(new SomeInternalType(), 10).ToList()
             };
             var list = Enumerable.Repeat(item, count).ToList();
-            list.ForEach(r => r.Id = Guid.NewGuid());
+            list.ForEach(r =>
+            {
+                r.Id = Guid.NewGuid();
+                r.AsSmpleObject.Id = Guid.NewGuid();
+                r.AsIList.ToList().ForEach(q => q.Id = Guid.NewGuid());
+            });
             return list;
         }
 
-        private static IEnumerable<TestDataResult> Test<T>(int ratio, T[] items) where T : class
-        {
-            Console.WriteLine($"==========Ratio: {ratio} Count: {items.Length} =================");
-            yield return TestSingleObject(
-                p => Serializers.NewtonSoftJsonSerialize(p),
-                p => Serializers.NewtonSoftJsonDeserialize<T[]>(p),
-                items,
-                ratio,
-                "NewtonSoftJson");
-
-            yield return TestSingleObject(
-                p => Serializers.JilSerialize(p),
-                p => Serializers.JilDeserialize<T[]>(p),
-                items,
-                ratio,
-                "JIL");
-
-            var netSerializer = new Serializer(new[] { typeof(T[]) });
-            yield return TestSingleObject(
-                p => Serializers.NetSerialize(netSerializer, p),
-                p => Serializers.NetDeserialize<T[]>(netSerializer, p),
-                items,
-                ratio,
-                "NET");
-
-            var boisSerializer = new BoisSerializer();
-            yield return TestSingleObject(
-                p => Serializers.BoisSerialize(boisSerializer, p),
-                p => Serializers.BoisDeserialize<T[]>(boisSerializer, p),
-                items,
-                ratio,
-                "Bois");
-
-            var msgSerializer = SerializationContext.Default.GetSerializer<T[]>();
-            yield return TestSingleObject(
-                p => Serializers.MsgPackSerialize(msgSerializer, p),
-                p => Serializers.MsgPackDeserialize(msgSerializer, p),
-                items,
-                ratio,
-                "MessagePack");
-
-            yield return TestSingleObject(
-                p => Serializers.NetJsonSerialize(p),
-                p => Serializers.NetJsonDeserialize<T[]>(p),
-                items,
-                ratio,
-                "NetJson");
-        }
-
-        public static TestDataResult TestSingleObject<T>(
-            Func<T[], RedisValue> serialize,
-            Func<RedisValue, T[]> deserialize,
-            T[] items,
-            int readWriteRatio,
-            string serializerType)
-        {
-            var s = Stopwatch.StartNew();
-            cache.StringSet(serializerType, serialize(items), expiry: TimeSpan.FromSeconds(30000));
-            for (var j = 0; j < readWriteRatio; j++)
-            {
-                if (cache.KeyExists(serializerType))
-                {
-                    var data = cache.StringGet(serializerType);
-                    var x = deserialize(data);
-                }
-            }
-            var totalMs = s.ElapsedMilliseconds;
-            Console.WriteLine($"{serializerType}: {totalMs}ms");
-            return new TestDataResult
-            {
-                Milliseconds = totalMs,
-                ReadPerWriteRatio = readWriteRatio,
-                SerializerType = serializerType,
-                ItemsInList = items.Length
-            };
-        }
-
-        private static void GenerateRDataAndScripts(List<TestDataResult> result)
+        private static void GenerateRDataAndScripts(IEnumerable<TestDataResult> result)
         {
             var x = result
-                .GroupBy(p => new { p.ReadPerWriteRatio, p.ItemsInList })
+                .GroupBy(p => new {p.ReadPerWriteRatio, p.ItemsInList})
                 .Select(p => new
                 {
                     p.Key.ReadPerWriteRatio,
@@ -151,76 +78,15 @@ namespace Redis
                 .OrderBy(p => p.ReadPerWriteRatio)
                 .ThenBy(p => p.ItemsInList)
                 .ToList();
-            var path = @"D:\Projects\Redis\Redis\R\Data";
+            const string path = @"D:\Projects\Redis\Redis\R\Data";
             x.GroupBy(p => p.ReadPerWriteRatio)
-             .ToList()
-             .ForEach(p =>
-             {
-                 var header = p.First().Header;
-                 var text = header + "\r\n" + string.Join("\r\n", p.OrderBy(q => q.ItemsInList).Select(q => q.Values));
-                 File.WriteAllText(Path.Combine(path, p.Key+".dat"), text);
-             });
-
+                .ToList()
+                .ForEach(p =>
+                {
+                    var header = p.First().Header;
+                    var text = header + "\r\n" + string.Join("\r\n", p.OrderBy(q => q.ItemsInList).Select(q => q.Values));
+                    File.WriteAllText(Path.Combine(path, p.Key + ".dat"), text);
+                });
         }
-
-    }
-
-    public class RedisConnectorHelper
-    {
-        static RedisConnectorHelper()
-        {
-            lazyConnection = new Lazy<ConnectionMultiplexer>(() =>
-            {
-                return ConnectionMultiplexer.Connect("localhost");
-            });
-        }
-
-        private static Lazy<ConnectionMultiplexer> lazyConnection;
-
-        public static ConnectionMultiplexer Connection
-        {
-            get
-            {
-                return lazyConnection.Value;
-            }
-        }
-    }
-
-    [Serializable]
-    public class Data
-    {
-        public string Name { get; set; }
-
-        public DateTime? Dob { get; set; }
-        public string Name1 { get; set; }
-
-        public DateTime? Dob1 { get; set; }
-        public string Name2 { get; set; }
-
-        public DateTime? Dob2 { get; set; }
-        public string Name3 { get; set; }
-
-        public DateTime? Dob3 { get; set; }
-        public string Name4 { get; set; }
-
-        public DateTime? Dob4 { get; set; }
-        public string Name5 { get; set; }
-
-        public DateTime? Dob5 { get; set; }
-        public string Name6 { get; set; }
-
-        public DateTime? Dob6 { get; set; }
-        public string Name7 { get; set; }
-
-        public DateTime? Dob7 { get; set; }
-        public Guid? Id { get; set; }
-    }
-    
-    public class TestDataResult
-    {
-        public string SerializerType { get; set; }
-        public long Milliseconds { get; set; }
-        public int ReadPerWriteRatio { get; set; } = 1;
-        public int ItemsInList { get; set; }
     }
 }
