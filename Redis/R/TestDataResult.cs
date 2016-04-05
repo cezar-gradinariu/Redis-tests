@@ -1,4 +1,4 @@
-namespace Redis
+namespace Redis.R
 {
     public class TestDataResult
     {

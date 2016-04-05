@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using MsgPack.Serialization;
 using NetSerializer;
+using Redis.R;
+using Redis.Types;
 using Salar.Bois;
 using StackExchange.Redis;
 
@@ -64,6 +66,13 @@ namespace Redis
                 items,
                 ratio,
                 "NetJson");
+
+            yield return TestSingleObject(
+                p => Serializers.ServiceStackSerialize(p),
+                p => Serializers.ServiceStackDeserialize<T[]>(p),
+                items,
+                ratio,
+                "ServiceStack");
         }
 
         internal TestDataResult TestSingleObject<T>(

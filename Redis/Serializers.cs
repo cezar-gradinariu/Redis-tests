@@ -95,5 +95,15 @@ namespace Redis
             }
         }
 
+        public static string ServiceStackSerialize<T>(T a)
+        {
+            return ServiceStack.Text.JsonSerializer.SerializeToString(a);
+        }
+
+        public static T ServiceStackDeserialize<T>(string data)
+        {
+            return ServiceStack.Text.JsonSerializer.DeserializeFromString<T>(data);
+        }
+
     }
 }

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Redis
+namespace Redis.Types
 {
     [Serializable]
     public class SomeInternalType

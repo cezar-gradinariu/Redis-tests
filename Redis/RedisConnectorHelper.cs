@@ -7,19 +7,16 @@ namespace Redis
     {
         static RedisConnectorHelper()
         {
-            lazyConnection = new Lazy<ConnectionMultiplexer>(() =>
-            {
-                return ConnectionMultiplexer.Connect("localhost");
-            });
+            LazyConnection = new Lazy<ConnectionMultiplexer>(() => ConnectionMultiplexer.Connect("localhost"));
         }
 
-        private static Lazy<ConnectionMultiplexer> lazyConnection;
+        private static readonly Lazy<ConnectionMultiplexer> LazyConnection;
 
         public static ConnectionMultiplexer Connection
         {
             get
             {
-                return lazyConnection.Value;
+                return LazyConnection.Value;
             }
         }
     }
