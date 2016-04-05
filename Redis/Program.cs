@@ -21,8 +21,8 @@ namespace Redis
 
             Thread.Sleep(1000);
 
-            var ratios = new[] {1, 10, 50, 100, 500, 1000};//, 5000, 10000};
-            var noOfItems = new[] {1, 10, 25, 50, 100, 150, 200, 250};//, 300, 350, 400, 450, 500};
+            var ratios = new[] {1, 10, 50, 100, 500, 1000, 1500, 2500};
+            var noOfItems = new[] {1, 10, 25, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500};
 
             var result = new List<TestDataResult>();
             foreach (var ratio in ratios)
