@@ -30,12 +30,19 @@ namespace Redis
                 "NewtonSoftJson");
 
             yield return TestSingleObject(
+               p => Serializers.JilSerialize1(p),
+               p => Serializers.JilDeserialize1<T[]>(p),
+               items,
+               ratio,
+               "JIL1");
+
+
+            yield return TestSingleObject(
                 p => Serializers.JilSerialize(p),
                 p => Serializers.JilDeserialize<T[]>(p),
                 items,
                 ratio,
                 "JIL");
-
             var netSerializer = new Serializer(new[] { typeof(T[]), typeof(SomeInternalType), typeof(IList<SomeInternalType>) });
             yield return TestSingleObject(
                 p => Serializers.NetSerialize(netSerializer, p),

@@ -35,6 +35,15 @@ namespace Redis
             }
         }
 
+        public static string JilSerialize1(object a)
+        {
+            return JSON.Serialize(a);
+        }
+        public static T JilDeserialize1<T>(string a)
+        {
+            return JSON.Deserialize<T>(a);
+        }
+
         public static string NetJsonSerialize(object a)
         {
             return NetJSON.NetJSON.Serialize(a);
